@@ -27,78 +27,11 @@ from tensorflow.python.keras import backend as K
 import tensorflow as tf
 
 
-#%%Loss functions
-
-def wsse(class_weights, num_classes):
-    def metric(y_true, y_pred):
-        #make sure the groundtruth arrays are the correct size
-        y_true = tf.squeeze(y_true, axis=-1) 
-        y_true = tensorflow.cast(y_true, dtype=tensorflow.int32)
-        reduction = tensorflow.keras.losses.Reduction.NONE
-        #perform the normal sparse categorical crossentropy loss calculation
-        unreduced_scce = tensorflow.keras.losses.SparseCategoricalCrossentropy(
-            from_logits=False, name='weighted_scce', reduction=reduction)
-        loss = unreduced_scce(y_true, y_pred)
-        #add the weighting to the loss calculation
-        weight_mask = tensorflow.gather(class_weights, y_true)
-        weight_mask = tensorflow.cast(weight_mask, tensorflow.float32)
-        loss = tensorflow.math.multiply(loss, weight_mask)
-        return tensorflow.reduce_mean(loss)
-    return metric
-
-def dice_coefficient(num_classes, smooth=1):
-    '''
-    Parameters:
-        Number of class: class number for classification task
-        smooth: Smoothing factor, higher value is more smooth
-        
-    '''
-    def metric(y_true, y_pred):
-        dice_scores = []
-        #make sure the groundtruth is the correct size
-        y_true = tf.squeeze(y_true, axis=-1)  # Ensure shape matches
-        for class_id in range(0, num_classes):
-            #for each class, calculate the dice coefficient loss
-            y_true_class = tensorflow.cast(tensorflow.equal(
-                y_true, class_id), dtype=tensorflow.float32)
-            y_pred_class = y_pred[..., class_id]
-            intersection = tensorflow.reduce_sum(y_true_class * y_pred_class)
-            union = tensorflow.reduce_sum(tensorflow.cast(y_true_class, dtype=tensorflow.float32)) + tensorflow.reduce_sum(
-                tensorflow.cast(y_pred_class, dtype=tensorflow.float32))  # Cast y_pred_class
-            dice = 1 - ((2. * intersection + 1) / (union + 1))
-            
-            #append calculated loss per class to the total dice score                
-            dice_scores.append(dice)
-        #return the average dice loss across the entire interferogram
-        return tensorflow.reduce_mean(dice_scores)
-
-    return metric
-
-def custom_loss(class_weights, num_classes):
-    
-    '''
-    Custom loss to combine together multiple loss functions for optimal loss training
-    Input:
-        Class weights: List containing class weights per class to be used for the weighted categorical crossentropy
-        number of classes: integer value of the number of classes to be used for training
-       
-    '''
-
-    def loss(y_true, y_pred):
-        
-        dice_coef_loss = dice_coefficient(num_classes, class_weights)(y_true, y_pred)
-        wsse_loss = wsse(class_weights, num_classes)(y_true, y_pred)
-        total_loss =  wsse_loss + dice_coef_loss
-        
-        return total_loss
-    return loss
-
-
 
 #%%Model
 class UNet():
     '''
-    Custom Model for training
+    Custom Model for training - based upon Ronneberger et al. U-Net: Convolutional Networks for Biomedical Image Segmentation paper
     Paramters:
         num_classes: integer value for the number of classification values 
     '''
