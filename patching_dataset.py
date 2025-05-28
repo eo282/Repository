@@ -51,24 +51,6 @@ new_array: expanded 2d array containing same values apart from extra column whic
     
     return new_array
 
-def expanded_array_func_y(array, patch_size):
-'''
-Function to expand 2d array in the vertical direction
-Input:
-array: 2d array of equal width and height
-patch_size: size of width
-return:
-new_array: expanded 2d array containing same values apart from extra row which is a duplicate of the previous row
-'''
-    original_array = array
-    # Create a new zeros array of size patch_Size, patch_size + 1
-    new_array = np.zeros((patch_size + 1, patch_size))
-    
-    # Copy the data from the original array to the new array
-    new_array[:-1, :] = original_array
-    new_array[-1, :] = new_array[-2, :]
-    
-    return new_array
 
 def preprocess_image(image_scaled):
 
@@ -131,20 +113,17 @@ def patching_dataset(data_file_locations, saving_file_location, partition_length
         wrapped_location_onwards = wrapped_location + coh_levels[coh_lib]
         unwrapped_location = home_location + '/unwrapped/'  + coh_levels[coh_lib]
         xgrad_location = home_location + '/x_grad/'  + coh_levels[coh_lib]
-        ygrad_location = home_location + '/y_grad/'  + coh_levels[coh_lib]
         mask_location = home_location + '/deformation_mask/'  + coh_levels[coh_lib]
         
         #masking the saving locations for wrapped, unwrapped, xgrad, y grad, mask patches
         wrapped_location_onwards_saving = saving_location + '/wrapped/' + coh_levels[coh_lib] + '/'
         unwrapped_location_saving = saving_location + '/unwrapped/'  + coh_levels[coh_lib] + '/'
         xgrad_location_saving = saving_location + '/x_grad/'  + coh_levels[coh_lib] + '/'
-        ygrad_location_saving = saving_location + '/y_grad/'  + coh_levels[coh_lib] + '/'
         mask_location_saving = saving_location + '/deformation_mask/'  + coh_levels[coh_lib] + '/'
         
         checking_if_location_exist(wrapped_location_onwards_saving)
         checking_if_location_exist(unwrapped_location_saving)
         checking_if_location_exist(xgrad_location_saving)
-        checking_if_location_exist(ygrad_location_saving)
         checking_if_location_exist(mask_location_saving)
         
         wrapped_location_onwards_list = os.listdir(wrapped_location_onwards)
@@ -155,7 +134,6 @@ def patching_dataset(data_file_locations, saving_file_location, partition_length
             wrapped = np.load(wrapped_location_onwards + '/' + each_file)
             unwrapped = np.load(unwrapped_location + '/' + each_file)
             xgrad = np.load(xgrad_location + '/' + each_file)
-            ygrad = np.load(ygrad_location + '/' + each_file)
             mask = np.load(mask_location + '/' + each_file)
             
             #i want to look at the mask and the wrapped data mainly
@@ -166,7 +144,6 @@ def patching_dataset(data_file_locations, saving_file_location, partition_length
             patches_wrapped = view_as_blocks(wrapped, block_shape=patch_size).squeeze()
             patches_unwrapped = view_as_blocks(unwrapped, block_shape=patch_size).squeeze()
             patches_xgrad = view_as_blocks(xgrad, block_shape=patch_size).squeeze()
-            patches_ygrad = view_as_blocks(ygrad, block_shape=patch_size).squeeze()
             patches_mask = view_as_blocks(mask, block_shape=patch_size).squeeze()
             
             count = 0
@@ -177,7 +154,6 @@ def patching_dataset(data_file_locations, saving_file_location, partition_length
                     patch_wrapped = patches_wrapped[i, j]
                     patch_unwrapped = patches_unwrapped[i,j]
                     patch_xgrad = patches_xgrad[i,j]
-                    patch_ygrad = patches_ygrad[i,j]
                     patch_mask = patches_mask[i,j]
                     
                     countpw = np.count_nonzero(np.isnan(patch_wrapped))
@@ -190,7 +166,6 @@ def patching_dataset(data_file_locations, saving_file_location, partition_length
                         save(wrapped_location_onwards_saving + each_file + str(count) + '.npy', patch_wrapped)
                         save(unwrapped_location_saving + each_file + str(count) + '.npy', patch_unwrapped)
                         save(xgrad_location_saving + each_file + str(count) + '.npy', patch_xgrad)
-                        save(ygrad_location_saving + each_file + str(count) + '.npy', patch_ygrad)
                         save(mask_location_saving + each_file + str(count) + '.npy', patch_mask)
                         
                         count += 1
@@ -214,7 +189,6 @@ def patching_dataset(data_file_locations, saving_file_location, partition_length
                             save(wrapped_location_onwards_saving + each_file + str(count) + '.npy', patch_wrapped)
                             save(unwrapped_location_saving + each_file + str(count) + '.npy', patch_unwrapped)
                             save(xgrad_location_saving + each_file + str(count) + '.npy', patch_xgrad)
-                            save(ygrad_location_saving + each_file + str(count) + '.npy', patch_ygrad)
                             save(mask_location_saving + each_file + str(count) + '.npy', patch_mask)  
                             count += 1
                             
@@ -226,18 +200,14 @@ def patching_dataset(data_file_locations, saving_file_location, partition_length
                             arrayx = expanded_array_func_x(rot_wrapped, partition_length)
                             arrayy = expanded_array_func_y(rot_wrapped, partition_length)
                             unwrapx = expanded_array_func_x(rot_unwrapped, partition_length)
-                            unwrapy = expanded_array_func_y(rot_unwrapped, partition_length)
 
                             k_valuesx = (unwrapx- arrayx)/(2*np.pi)
-                            k_valuesy = (unwrapy - arrayy)/(2*np.pi)
                             
                             label_hor = np.round(np.diff(k_valuesx, axis = 1))
-                            label_vert = np.round(np.diff(k_valuesy, axis = 0))
                             
                             save(wrapped_location_onwards_saving + each_file + str(count) + '.npy', rot_wrapped)
                             save(unwrapped_location_saving + each_file + str(count) + '.npy', rot_unwrapped)
                             save(xgrad_location_saving + each_file + str(count) + '.npy', label_hor)
-                            save(ygrad_location_saving + each_file + str(count) + '.npy', label_vert)
                             save(mask_location_saving + each_file + str(count) + '.npy', rot_mask)  
                             count += 1
                             
@@ -249,18 +219,14 @@ def patching_dataset(data_file_locations, saving_file_location, partition_length
                             arrayx = expanded_array_func_x(rot_wrapped, partition_length)
                             arrayy = expanded_array_func_y(rot_wrapped, partition_length)
                             unwrapx = expanded_array_func_x(rot_unwrapped, partition_length)
-                            unwrapy = expanded_array_func_y(rot_unwrapped, partition_length)
 
                             k_valuesx = (unwrapx- arrayx)/(2*np.pi)
-                            k_valuesy = (unwrapy - arrayy)/(2*np.pi)
                             
                             label_hor = np.round(np.diff(k_valuesx, axis = 1))
-                            label_vert = np.round(np.diff(k_valuesy, axis = 0))
-                            
+
                             save(wrapped_location_onwards_saving + each_file + str(count) + '.npy', rot_wrapped)
                             save(unwrapped_location_saving + each_file + str(count) + '.npy', rot_unwrapped)
                             save(xgrad_location_saving + each_file + str(count) + '.npy', label_hor)
-                            save(ygrad_location_saving + each_file + str(count) + '.npy', label_vert)
                             save(mask_location_saving + each_file + str(count) + '.npy', rot_mask)  
                             count += 1
                             
@@ -272,18 +238,13 @@ def patching_dataset(data_file_locations, saving_file_location, partition_length
                             arrayx = expanded_array_func_x(rot_wrapped, partition_length)
                             arrayy = expanded_array_func_y(rot_wrapped, partition_length)
                             unwrapx = expanded_array_func_x(rot_unwrapped, partition_length)
-                            unwrapy = expanded_array_func_y(rot_unwrapped, partition_length)
 
                             k_valuesx = (unwrapx- arrayx)/(2*np.pi)
-                            k_valuesy = (unwrapy - arrayy)/(2*np.pi)
-                            
                             label_hor = np.round(np.diff(k_valuesx, axis = 1))
-                            label_vert = np.round(np.diff(k_valuesy, axis = 0))
-                            
+   
                             save(wrapped_location_onwards_saving + each_file + str(count) + '.npy', rot_wrapped)
                             save(unwrapped_location_saving + each_file + str(count) + '.npy', rot_unwrapped)
                             save(xgrad_location_saving + each_file + str(count) + '.npy', label_hor)
-                            save(ygrad_location_saving + each_file + str(count) + '.npy', label_vert)
                             save(mask_location_saving + each_file + str(count) + '.npy', rot_mask)  
                             count += 1   
                             
@@ -300,18 +261,14 @@ def patching_dataset(data_file_locations, saving_file_location, partition_length
                             arrayx = expanded_array_func_x(flipped_both_w, partition_length)
                             arrayy = expanded_array_func_y(flipped_both_w, partition_length)
                             unwrapx = expanded_array_func_x(cflipped_both_uw, partition_length)
-                            unwrapy = expanded_array_func_y(flipped_both_uw, partition_length)
 
                             k_valuesx = (unwrapx- arrayx)/(2*np.pi)
-                            k_valuesy = (unwrapy - arrayy)/(2*np.pi)
                             
                             label_hor = np.round(np.diff(k_valuesx, axis = 1))
-                            label_vert = np.round(np.diff(k_valuesy, axis = 0))
-                            
+
                             save(wrapped_location_onwards_saving + each_file + str(count) + '.npy', cflipped_both_w)
                             save(unwrapped_location_saving + each_file + str(count) + '.npy', cflipped_both_uw)
                             save(xgrad_location_saving + each_file + str(count) + '.npy', label_hor)
-                            save(ygrad_location_saving + each_file + str(count) + '.npy', label_vert)
                             save(mask_location_saving + each_file + str(count) + '.npy', cflipped_both_m)  
                             count += 1
                             
@@ -329,18 +286,14 @@ def patching_dataset(data_file_locations, saving_file_location, partition_length
                             arrayx = expanded_array_func_x(flipped_both_w, partition_length)
                             arrayy = expanded_array_func_y(flipped_both_w, partition_length)
                             unwrapx = expanded_array_func_x(cflipped_both_uw, partition_length)
-                            unwrapy = expanded_array_func_y(flipped_both_uw, partition_length)
 
                             k_valuesx = (unwrapx- arrayx)/(2*np.pi)
-                            k_valuesy = (unwrapy - arrayy)/(2*np.pi)
-                            
+
                             label_hor = np.round(np.diff(k_valuesx, axis = 1))
-                            label_vert = np.round(np.diff(k_valuesy, axis = 0))
-                            
+
                             save(wrapped_location_onwards_saving + each_file + str(count) + '.npy', cflipped_both_w)
                             save(unwrapped_location_saving + each_file + str(count) + '.npy', cflipped_both_uw)
                             save(xgrad_location_saving + each_file + str(count) + '.npy', label_hor)
-                            save(ygrad_location_saving + each_file + str(count) + '.npy', label_vert)
                             save(mask_location_saving + each_file + str(count) + '.npy', cflipped_both_m)  
                             count += 1  
                             
@@ -349,7 +302,6 @@ def patching_dataset(data_file_locations, saving_file_location, partition_length
                             save(wrapped_location_onwards_saving + each_file + str(count) + '.npy', patch_wrapped)
                             save(unwrapped_location_saving + each_file + str(count) + '.npy', patch_unwrapped)
                             save(xgrad_location_saving + each_file + str(count) + '.npy', patch_xgrad)
-                            save(ygrad_location_saving + each_file + str(count) + '.npy', patch_ygrad)
                             save(mask_location_saving + each_file + str(count) + '.npy', patch_mask)
                             
                             count += 1
