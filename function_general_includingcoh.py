@@ -180,8 +180,6 @@ def prepare_data_multioutput(input_directory, target_directory,
     Inputs:
     input_directory: location of input training data
     target_directory: location of targets for input training data
-    mask_directory: location of masks for input training data, set as None
-    deformation_directory: location of deformation masks to match deformation masks to match input training data, set as None
     csv_directory: location to save csv files to
     csv_file_names: giving new names to csv file, set to semi_supervised_model
     percentage_validation: the percentage of training data to make validation data
@@ -294,8 +292,7 @@ def samples_gen_part_two_output_coh(samples, batch_size, shuffle_data, array_siz
     
     Outputs:
         X_train: training dataset of input training data
-        y_train_hor, y_train_vert, coh_train: dataset of targets
-        mask_train, defo_train: masks
+        y_train_hor: dataset of targets
     """
     
     import numpy as np
@@ -401,9 +398,8 @@ def Lets_go_model_multi_coh(input_directory, target_directory, csv_directory = N
 '''
 Function to pre-prepare training dataset
 Inputs:
-input_directory_synw: file location directory of wrapped input data
-target_directory_syn_hor: file location directory of horizontal target data
-target_directory_syn_vert: file direcotry of vertical target data
+input_directory: file location directory of wrapped input data
+target_directory: file location directory of horizontal target data
 csv_directory: location to save csv files containing list of file locations
 csv_file_names: name to save csv files under
 percentage_validation: value between 0 and 1 to seperate the data into training and validation dataset
@@ -412,7 +408,6 @@ array_size: size of wrapped data, 3 values (h,w,c)
 addition: automatically set to 0
 shuffle_data: true or false
 class_nom: number of classes for training. can be 3,4 or 5
-unwrapped_directory: file location of unwrapped data
 Returns:
 train_samples_syn: file locations for input, targets for training
 valid_samples_syn: file locations for input, targets for validation
