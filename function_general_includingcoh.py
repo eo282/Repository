@@ -156,24 +156,6 @@ def expanded_array_func_x(array):
     new_array[:, -1] = new_array[:, -2]
     return new_array
 
-def expanded_array_func_y(array):
-     '''
-	Function to expand the array size in the vertical direction
-	Parameters:
-	array: 2d array
-	Return:
-	new_array: expanded 2d array
-    '''
-    x_shape, y_shape =array.shape
-    
-    # Create a new original size + 1, original size array filled with zeros
-    new_array = np.zeros((x_shape + 1,y_shape))
-    
-    # Copy the data from the original array to the new array
-    new_array[:-1, :] = original_array
-    new_array[-1, :] = new_array[-2,:]
-    return new_array
-
 #%%Prepare data subsection
 def prepare_data_subsection(inputs):
     """
