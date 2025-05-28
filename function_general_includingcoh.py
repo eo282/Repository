@@ -5,6 +5,8 @@ Created on Mon Apr 29 10:37:15 2024
 
 @author: eeerog
 file containing functions related to the processing of the data for model training
+preparing data for a 3 class semantic segmentation task unet model
+input is a 2d array of channel 1, output is 2d array of same size channel = 1
 """
 #%%import modules
 
@@ -20,26 +22,26 @@ from multiprocessing import Pool
 import tensorflow
 
 #%%procces file
-def process_file(file_path, sub_folder, inputs_h, inputs_w, class_nom,array_size_indiv):
+def process_file(file_path, sub_folder, targets_dir, inputs_dir, class_nom,array_size_indiv):
 
-    variable_name = os.path.relpath(file_path, inputs_h)
-    file_h = np.load(os.path.join(inputs_h + '/', variable_name)).astype(np.float32)
-    wrapped = np.load(os.path.join(inputs_w  + '/', variable_name)).astype(np.float32)
+    variable_name = os.path.relpath(file_path, targets_dir)
+    targets_out = np.load(os.path.join(targets_dir + '/', variable_name)).astype(np.float32)
+    inputs_in = np.load(os.path.join(inputs_dir  + '/', variable_name)).astype(np.float32)
 
-    wrapped = wrapped[:array_size_indiv, :array_size_indiv]
-    file_h = file_h[:array_size_indiv, :array_size_indiv]
-    mask = np.ones(file_h.shape)
-    mask[np.isnan(wrapped)] = 0
-    mask[wrapped == 0] = 0
-    # plt.imshow(wrapped)
+    inputs_in = inputs_in[:array_size_indiv, :array_size_indiv]
+    targets_out = targets_out[:array_size_indiv, :array_size_indiv]
+    mask = np.ones(targets_out.shape)
+    mask[np.isnan(inputs_in)] = 0
+    mask[inputs_in == 0] = 0
+    # plt.imshow(inputs_in)
     # plt.show()
     # Check for NaN values and neighbors
-    nan_indices = np.isnan(wrapped)
+    nan_indices = np.isnan(inputs_in)
     neighbor_indices = (
-        np.roll(wrapped, 1, axis=0),
-        np.roll(wrapped, -1, axis=0),
-        np.roll(wrapped, 1, axis=1),
-        np.roll(wrapped, -1, axis=1)
+        np.roll(inputs_in, 1, axis=0),
+        np.roll(inputs_in, -1, axis=0),
+        np.roll(inputs_in, 1, axis=1),
+        np.roll(inputs_in, -1, axis=1)
     )
 
     # Set mask to 0 where there are NaN values or at neighboring pixels
@@ -47,114 +49,83 @@ def process_file(file_path, sub_folder, inputs_h, inputs_w, class_nom,array_size
     
     #ensure target data is given correct target values dependent upon the number of classes required for training
     if class_nom == 3:   
-        file_h[np.isnan(file_h)] = 0
-        file_h[file_h >= 2] = 1
-        file_h[file_h <= -2] = -1
-        file_h[mask == 0] = 0
+        targets_out[np.isnan(targets_out)] = 0
+        targets_out[targets_out >= 2] = 1
+        targets_out[targets_out <= -2] = -1
+        targets_out[mask == 0] = 0
     
     else:
 	print('you can only have a 3 class model')
     
 
         
-    return file_h, mask, sub_folder
+    return targets_out, mask, sub_folder
 
 
 def process_file_parallel(args):
-    file_path, sub_folder,  inputs_h, inputs_w, input_nom, array_size_indiv = args
-    return process_file(file_path, sub_folder, inputs_h, inputs_w, input_nom, array_size_indiv)
+    file_path, sub_folder,  target_dir, inputs_dir, input_nom, array_size_indiv = args
+    return process_file(file_path, sub_folder, target_dir, inputs_dir, input_nom, array_size_indiv)
 
 def listing_function(inputs, class_nom, array_size_indiv):
-    inputs_h = inputs + 'x_grad/'
-    inputs_w = inputs + 'wrapped_noised/'
+    target_dir = inputs + 'x_grad/'
+    inputs_dir = inputs + 'wrapped_noised/'
     # import pdb; pdb.set_trace()
     folder_dir = os.listdir(inputs_w) 
-    array_h = []
+    array_target = []
     array_c = []
     array_coh = []
 
     for each_folder in folder_dir:
-        file_paths_v =glob.glob(os.path.join(inputs_h + each_folder + '/', '*.npy'), recursive=True)
+        file_paths_v =glob.glob(os.path.join(target_dir + each_folder + '/', '*.npy'), recursive=True)
         
         # Define the number of processes (adjust as needed)
         num_processes = 10
         # Create a pool of worker processes
         pool = Pool(num_processes)
         # Prepare the arguments for parallel processing
-        args = [(file_path,each_folder, inputs_h, inputs_w, class_nom, array_size_indiv) for file_path in file_paths_v]
+        args = [(file_path,each_folder, target_dir, inputs_dir, class_nom, array_size_indiv) for file_path in file_paths_v]
         # Use the pool to parallelize the processing of files
         results = pool.map(process_file_parallel, args)
         # Close the pool to release resources
         pool.close()
         pool.join()
 
-        for file_h, mask2, sub_folder in results:
-            array_h.append(file_h)
-            array_c.append(mask2)
-            array_coh.append(sub_folder)
+        for targets_out, mask2, sub_folder in results:
+            array_target.append(targets_out)
 
     # Calculate class frequencies from all the data together
     # import pdb; pdb.set_trace()
-    all_file_h = np.concatenate(array_h)
-    all_mask2 = np.concatenate(mask2)
-    # all_coh = np.concatenate(array_coh)
+    all_file_h = np.concatenate(array_target)
     
     #calculate the weighting
-    if class_nom == 3:
-        class_countsc = [np.count_nonzero(all_file_h == 0), np.count_nonzero(all_file_h == 1) + np.count_nonzero(all_file_h == 2)]
-        total_samplesc = sum(class_countsc)
-        class_frequenciesc = [count / total_samplesc for count in class_countsc]
-    
-        class_countsh = [np.count_nonzero(all_file_h == -1), np.count_nonzero(all_file_h == 0)  , np.count_nonzero(all_file_h == 1) , np.count_nonzero(all_file_h == 2) ]
-        total_samplesh = sum(class_countsh)
-        class_frequenciesh = [count / total_samplesh for count in class_countsh]
+    if class_nom == 3:   
+        class_counts = [np.count_nonzero(all_file_h == -1), np.count_nonzero(all_file_h == 0)  , np.count_nonzero(all_file_h == 1) , np.count_nonzero(all_file_h == 2) ]
+        total_samples = sum(class_counts)
+        class_frequencies = [count / total_samples for count in class_counts]
 
         # Rest of your code to calculate class weights goes here
         
-        class_weightsh = [1 - count  for count in class_frequenciesh]
-        class_weightsc = [1 - count  for count in class_frequenciesc]
-
+        class_weights = [1 - count  for count in class_frequencies]
+	    
 	# normalising part
-        sum_weightsh = sum(class_weightsh)
-        sum_weightsc = sum(class_weightsc)
+        sum_weights = sum(class_weights)
         
         # Normalize by dividing each weight by the sum of weights (to ensure they sum to 1)
-        normalized_class_weightsh = [weight / sum_weightsh for weight in class_weightsh]
-        normalized_class_weightsc = [weight / sum_weightsc for weight in class_weightsc]
+        normalized_class_weights = [weight / sum_weights for weight in class_weights]
        
         num_classes = class_nom
-        total_samples_m1h = total_samplesh/(num_classes * class_countsh[0])
-        total_samples_0h = total_samplesh/(num_classes * class_countsh[1])
-        total_samples_1h = total_samplesh/(num_classes * class_countsh[2])
+        total_samples_m1 = total_samples/(num_classes * class_counts[0])
+        total_samples_0 = total_samples/(num_classes * class_counts[1])
+        total_samples_1 = total_samples/(num_classes * class_counts[2])
         
-        normalized_class_weightsh = [total_samples_m1h, total_samples_0h, total_samples_1h]
+        normalized_class_weights = [total_samples_m1, total_samples_0, total_samples_1]
     else:
 	print('you can only use this for a 3 class classification problem')
        
         
     return (
-        normalized_class_weightsh,
-        normalized_class_weightsc
+        normalized_class_weights
     )
-
-#%%expanding functions
-def expanded_array_func_x(array):
-    '''
-	Function to expand the array size in the horizontal direction
-	Parameters:
-	array: 2d array
-	Return:
-	new_array: expanded 2d array
-    '''
-    x_shape, y_shape =array.shape
-    
-    # Create a new zero array size original shape, original shape + 1 
-    new_array = np.zeros((x_shape,y_shape+1))
-    
-    # Copy the data from the original array to the new array
-    new_array[:, :-1] = original_array
-    new_array[:, -1] = new_array[:, -2]
-    return new_array
 
 #%%Prepare data subsection
 def prepare_data_subsection(inputs):
@@ -166,7 +137,6 @@ def prepare_data_subsection(inputs):
     inputs: directory location
     Return:
     list_name: list of files
-    coh_list: list of coherences for each file
     """
 
     import numpy as np
@@ -174,7 +144,7 @@ def prepare_data_subsection(inputs):
     import pandas as pd
 
     list_name = []
-    coh_list = []
+	
     # import pdb; pdb.set_trace()
     input_dir = os.listdir(inputs)
     # import pdb; pdb.set_trace()
@@ -197,11 +167,11 @@ def prepare_data_subsection(inputs):
                             new_path = os.path.join(
                                 new_inputs_dir + '/' + directory[k])
                             list_name.append(new_path)
-                            coh_list.append(i)
-    return list_name, coh_list
+
+    return list_name
 
 #%%prepare data multi output with coherence output too
-def prepare_data_multioutput(input_directoryw, target_directory_hor, unwrapped_directory = None, mask_directory = None, deformation_directory = None, 
+def prepare_data_multioutput(input_directory, target_directory,
                  csv_directory = None, csv_file_names = 'semi_supervised_model',percentage_validation = 0.2):
    
     """
@@ -220,45 +190,21 @@ def prepare_data_multioutput(input_directoryw, target_directory_hor, unwrapped_d
     
      #use prepare data subsection to get a list of all files avaliable for training
     # import pdb; pdb.set_trace()
-    training_inputsw, coh_list = prepare_data_subsection(input_directoryw)  #training inputs
-    training_targets_hor, coh_list = prepare_data_subsection(target_directory_hor)    #target outputs in the horizontal direction
+    training_inputs = prepare_data_subsection(input_directory)  #training inputs
+    training_targets = prepare_data_subsection(target_directory)    #target outputs in the horizontal direction
    
-    if isinstance(unwrapped_directory, type(input_directoryw)):
-        training_targets_unwrapped = prepare_data_subsection(unwrapped_directory)
-    
-    else:
-        training_targets_unwrapped = []
+    training_inputs.sort()  #sort so in alphabetical order
+    training_targets.sort() #sort so in alphabetical order
    
-    training_inputsw.sort()  #sort so in alphabetical order
-    training_targets_hor.sort() #sort so in alphabetical order
-    training_targets_unwrapped.sort()
-        
     training_inputsr = []
     training_inputsi = []
-    training_targets_hor2 = []
-    training_targets_unwrapped2 = []
-    
-    training_inputsw = training_inputsw
-    training_targets_hor2 = training_targets_hor
-    training_targets_unwrapped2 = training_targets_unwrapped
-    # import pdb; pdb.set_trace()
-    if not isinstance(unwrapped_directory, type(input_directoryw)):
-    
-        data = pd.DataFrame({
-            'Inputs_w': training_inputsw,
-            'Targets_Hor': training_targets_hor2,
-            'coherence': coh_list
-        })
-    
-    else:
-        # import pdb; pdb.set_trace()
-        data = pd.DataFrame({
-            'Inputs_w': training_inputsw,
-            'Targets_Hor': training_targets_hor2,
-            'Unwrapped': training_targets_unwrapped2,
-            'coherence': coh_list
-        })
-        
+    training_targets2 = []
+
+    data = pd.DataFrame({
+	    'Inputs': training_inputs,
+	    'Targets': training_targets
+	})
+            
     
     # Split the data into training and validation sets
     train_data, val_data = train_test_split(data, test_size=percentage_validation, shuffle = True)
@@ -287,6 +233,7 @@ def prepare_data_multioutput(input_directoryw, target_directory_hor, unwrapped_d
 def preprocess_labels(label, class_nom):
     '''
     Function for preprocessing labels in generator during training
+    ensure 3 classes - all values above 1 = 1, all values less than -1 = -1
     Inputs:
     label: 2d array containing target labels
     class_nom: number of classes for classification (int/float)
@@ -333,7 +280,7 @@ def add_noise_with_coherence(array, target_coherence):
 
 
 
-def samples_gen_part_two_output_coh(samples, batch_size, shuffle_data, array_size = (112, 112, 1), class_nom = 4):
+def samples_gen_part_two_output_coh(samples, batch_size, shuffle_data, array_size = (112, 112, 1), class_nom = 3):
     """
     function for preparing batches for training
     multihead output, no cohereence
@@ -373,27 +320,27 @@ def samples_gen_part_two_output_coh(samples, batch_size, shuffle_data, array_siz
             for batch_sample in batch_samples:
                 
                 batch_sample_length = len(batch_sample)
-                input_w = batch_sample[0]
-                target_grad_name = batch_sample[1]
+                input_file_name = batch_sample[0]
+                target_file_name = batch_sample[1]
                                 
-                input_w = np.load(input_w)
-                label_target = np.load(target_grad_name)
+                input_file = np.load(input_file_name)
+                label_target = np.load(target_file_name)
 
-                label_target[input_w == 0] = np.nan
-		label_target[np.isnan(input_w)] = np.nan
+                label_target[input_file == 0] = np.nan
+		label_target[np.isnan(input_file)] = np.nan
 
 		label_target = preprocess_labels(label_target, class_nom)
 
-		random_values = np.random.uniform(-np.pi, np.pi, size=input_w.shape)
-                input_w[np.isnan(input_w)] = random_values[np.isnan(input_w)]               
+		random_values = np.random.uniform(-np.pi, np.pi, size=input_file.shape)
+                input_file[np.isnan(input_file)] = random_values[np.isnan(input_file)]               
                 
                 coht = np.random.uniform(0.3, 0.9999)
                 coht = round(coht, 2)
-                input_w = add_noise_with_coherence(input_w, coht)
+                input_file = add_noise_with_coherence(input_file, coht)
 
-                input_w = (input_w - (-np.pi)) / ((np.pi) - (-np.pi))#
+                input_file = (input_file - (-np.pi)) / ((np.pi) - (-np.pi))#
                 y_target = np.append(y_target, label_target)
-                X_train = np.append(X_train, input_w)
+                X_train = np.append(X_train, input_file)
             
             X_train = np.array(X_train)
             y_target = np.array(y_target)
@@ -434,32 +381,23 @@ def load_samples(csv_file, class_nom):
     data_keys_length = len(data.keys()) - 1
     
     if data_keys_length == 3:
-        data = data[['Inputs_w','Targets_Hor', 'coherence']]
+        data = data[['Inputs_w','Targets_Hor']]
         file_namesr = list(data.iloc[:,0])
         labels_hor = list(data.iloc[:,1])
-        labels_coh = list(data.iloc[:,2])
     
         samples = []
-        for sampr, lab_h, lab_v, coh in zip(file_namesr, labels_hor, labels_coh):
-            samples.append([sampr,lab_h, coh])
+        for sampr, lab_h in zip(file_namesr, labels_hor):
+            samples.append([sampr,lab_h])
+	return samples
     
     else:
-        data = data[['Inputs_w','Targets_Hor', 'Targets_Vert', 'Unwrapped']]
-        file_namesr = list(data.iloc[:,0])
-        labels_hor = list(data.iloc[:,1])
-        labels_vert = list(data.iloc[:,2])
-        labels_unwrapped = list(data.iloc[:,3])
+        print('there is a problem with the way the data is being loaded - you should only have 1 input and 1 target')
     
-        samples = []
-        for sampr, lab_h, lab_v, lab_u in zip(file_namesr, labels_hor, labels_vert, labels_unwrapped):
-            samples.append([sampr,lab_h, lab_v, lab_u])
+    	return None
 
-    return samples
-
-def Lets_go_model_multi_coh(input_directory_synw, target_directory_syn_hor, target_directory_syn_vert,
-                 csv_directory = None, csv_file_names = 'training_files_locations',
+def Lets_go_model_multi_coh(input_directory, target_directory, csv_directory = None, csv_file_names = 'training_files_locations',
                  percentage_validation = 0.2, batch_size = 20, array_size = (112, 112, 1),
-                 addition = 0, shuffle_data = True, class_nom = 4, unwrapped_directory = None):
+                 addition = 0, shuffle_data = True, class_nom = 3):
 '''
 Function to pre-prepare training dataset
 Inputs:
@@ -483,10 +421,10 @@ nsv: number of validation samples
 '''
     
     # import pdb; pdb.set_trace()
-    training_data_syn, validation_data_syn, nst, nsv = prepare_data_multioutput(input_directoryw = input_directory_synw, 
-                                                                                    target_directory_hor = target_directory_syn_hor,
+    training_data_syn, validation_data_syn, nst, nsv = prepare_data_multioutput(input_directory = input_directory, 
+                                                                                    target_directory = target_directory,
                                                                                     csv_directory = csv_directory, csv_file_names = csv_file_names,
-                                                                                    percentage_validation = percentage_validation,unwrapped_directory = unwrapped_directory)
+                                                                                    percentage_validation = percentage_validation)
    # import pdb; pdb.set_trace()
     train_samples_syn = load_samples(training_data_syn, class_nom)
     valid_samples_syn = load_samples(validation_data_syn, class_nom)
