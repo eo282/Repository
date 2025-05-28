@@ -90,10 +90,7 @@ def custom_loss(class_weights, num_classes):
         wsse_loss = wsse(class_weights, num_classes)(y_true, y_pred)
         total_loss =  wsse_loss + dice_coef_loss
         
-        y_true = tf.one_hot(tensorflow.cast(y_true, dtype=tensorflow.int32), depth=4) 
-        tvloss = tf.keras.losses.tversky(y_true, y_pred, alpha=0.7, beta=0.3)
-
-        return total_loss + tvloss
+        return total_loss
     return loss
 
 
