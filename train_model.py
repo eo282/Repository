@@ -99,24 +99,13 @@ def custom_loss(class_weights, num_classes):
 
 
 #%%Model
-class CustomModel():
+class UNet():
     '''
     Custom Model for training
     Paramters:
         num_classes: integer value for the number of classification values 
     '''
-    def attention_gate(self, g, s, num_filters):
-        Wg = Conv2D(num_filters, 1, padding="same")(g)
-        Wg = BatchNormalization()(Wg)
-    
-        Ws = Conv2D(num_filters, 1, padding="same")(s)
-        Ws = BatchNormalization()(Ws)
-    
-        out = Activation("relu")(Wg + Ws)
-        out = Conv2D(num_filters, 1, padding="same")(out)
-        out = Activation("sigmoid")(out)
-    
-        return out * s
+
 
     def make_default_hidden_layers(self, inputs, num_classes, kernel_size=3, dropout_value=0.2):
         # Initial Convolutional Block
@@ -153,51 +142,46 @@ class CustomModel():
         
         #Upsampling blocks
         UP1 = UpSampling2D()(dropout)
-        # UP1_B = Concatenate()([UP1, BN7])
-        UP1_B = self.attention_gate(UP1, BN7, 512)
+        UP1_B = Concatenate()([UP1, BN7])
+
         Conv4_1 = Conv2D(512, kernel_size, activation='relu', padding='same', name='conv4_1')(UP1_B)
         BN8 = BatchNormalization()(Conv4_1)
         Conv4_2 = Conv2D(512, kernel_size, activation='relu', padding='same', name='conv4_2')(BN8)
         BN9 = BatchNormalization()(Conv4_2)
         
         UP2 = UpSampling2D()(BN9)
-        # UP2_B = Concatenate()([UP2, BN5])
-        UP2_B = self.attention_gate(UP2, BN5, 256)
+        UP2_B = Concatenate()([UP2, BN5])
+
         Conv5_1 = Conv2D(256, kernel_size, activation='relu', padding='same', name='conv5_1')(UP2_B)
         BN10 = BatchNormalization()(Conv5_1)
         Conv5_2 = Conv2D(256, kernel_size, activation='relu', padding='same', name='conv5_2')(BN10)
         BN11 = BatchNormalization()(Conv5_2)
         
         UP3 = UpSampling2D()(BN11)
-        # UP3_B = Concatenate()([UP3, BN3])
-        UP3_B = self.attention_gate(UP3, BN3, 128)
+        UP3_B = Concatenate()([UP3, BN3])
+        
         Conv6_1 = Conv2D(128, kernel_size, activation='relu', padding='same', name='conv6_1')(UP3_B)
         BN12 = BatchNormalization()(Conv6_1)
         Conv6_2 = Conv2D(128, kernel_size, activation='relu', padding='same', name='conv6_2')(BN12)
         BN13 = BatchNormalization(name='bn')(Conv6_2)
         
         convadd1x = Conv2D(128, kernel_size, activation='relu', padding='same', name='xdirection_extraconv')(BN13)
-        convadd1y = Conv2D(128, kernel_size, activation='relu', padding='same', name='ydirection_extraconv')(BN13)
         convadd1x2 = Conv2D(64, kernel_size, activation='relu', padding='same', name='xdirection_extraconv2')(convadd1x)
-        convadd1y2 = Conv2D(64, kernel_size, activation='relu', padding='same', name='ydirection_extraconv2')(convadd1y)
 
-        return convadd1x2, convadd1y2
+        return convadd1x2
 
     def assemble_full_model(self, num_classes=4):
         input_size = (None, None, 1)
         inputs = tensorflow.keras.Input(shape=input_size)
 
-        conv17o, conv17br1 = self.make_default_hidden_layers(
+        conv17o = self.make_default_hidden_layers(
             inputs, num_classes=num_classes, kernel_size=3, dropout_value=0.2)
         
         conv17 = Conv2D(num_classes, 1, padding='same',
                         activation='softmax', name='finalx')(conv17o)
         
-        conv17b = Conv2D(num_classes, 1, padding='same',
-                          activation='softmax', name='finaly')(conv17br1)
 
-
-        model = Model(inputs=inputs, outputs= (conv17, conv17b))
+        model = Model(inputs=inputs, outputs= conv17)
 
         return model
 
