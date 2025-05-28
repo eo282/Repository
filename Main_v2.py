@@ -88,9 +88,9 @@ percentage_validation = 0.2
 batch_size = 8
 epoch_list = [400, 425]
 
-array_size = np.load(basic_location + 'noised/file_1.npy').shape
+array_size = np.load(basic_location + 'input/file_1.npy').shape
 input_list = os.listdir(groundtruth_input)
-first = np.load(basic_location + 'noised/file_1.npy')
+first = np.load(basic_location + 'input/file_1.npy')
 first = np.expand_dims(first, axis = -1)
 array_sizex, array_sizey, array_sizez = first.shape
 array_size_indiv = array_sizex
