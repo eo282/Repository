@@ -60,7 +60,7 @@ import gc
 
 # WandB module
 import wandb
-wandb.init(entity='eeerog', project='4 Model', group='4 Class Model')
+wandb.init(entity='please give entity name', project='Project', group='Group name')
 from wandb.keras import WandbCallback
 from tensorflow.keras.callbacks import Callback
 from wandb.integration.keras import WandbMetricsLogger
@@ -78,8 +78,8 @@ groundtruth_x = basic_location + 'x_grad/'
 groundtruth_y = basic_location + 'y_grad/'
 
 odel_saving_location = '/home/eeerog/folder_to_end_all_folders/models/'
-model_name = 'v2noise_to_cleaned_withcoherence_shapeningblock_attentiongatetvlosse_wsseloss_biggerdatasetr_1e5_increaseddepth_weightednoiseclass_'
-class_nom = 4
+model_name = 'model_name_'
+class_nom = 3
 cc_threshold = 0.1
 number_to_test = 60
 csv_directory = os.getcwd()
@@ -121,8 +121,8 @@ if training_gradients:
     model.compile(
         optimizer=keras.optimizers.Adam(learning_rate=1e-6),  # Fix this line
         loss={
-            'finalx': custom_loss(class_weightsh1, 4),
-            'finaly': custom_loss(class_weightsv1, 4),
+            'finalx': custom_loss(class_weightsh1, class_nom),
+            'finaly': custom_loss(class_weightsv1, class_nom),
         }
     )
     
