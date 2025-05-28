@@ -100,7 +100,7 @@ training_gradients = True
 
 #%%Preparing Dataset
 if training_gradients or training_gradients_and_noise or training_gradients_ft:
-    train_samples_syn_noised, valid_samples_syn_noised,  nst, nsv = Lets_go_model_multi_coh(input_directory_synw=groundtruth_input, target_directory_syn_hor=groundtruth_target,
+    train_samples_syn_noised, valid_samples_syn_noised,  nst, nsv = Lets_go_model_multi_coh(input_directory = groundtruth_input, target_directory = groundtruth_target,
                                                                               csv_directory=csv_directory, csv_file_names=csv_file_namesn,
                                                                               percentage_validation=percentage_validation, batch_size=batch_size, array_size=array_size,
                                                                               shuffle_data=shuffle_data, class_nom=class_nom)
