@@ -4,7 +4,8 @@
 Created on Sun May 25 14:24:52 2025
 
 @author: eeerog
-File to run model training
+File to run UNet model training
+takes input and groundtruth target for semantic segmentation task for classification into 3 classes
 Save model
 """
 
@@ -73,8 +74,8 @@ from function_general_includingcoh import *
 
 #training data location
 basic_location ='/home/eeerog/folder_to_end_all_folders/training_data/patched_64/'
-groundtruth_wrapped = basic_location + 'wrapped_noised/'
-groundtruth_x = basic_location + 'x_grad/'
+groundtruth_input = basic_location + 'input/'
+groundtruth_target = basic_location + 'gradient_target/'
 
 model_saving_location = '/home/eeerog/folder_to_end_all_folders/models/'
 model_name = 'model_name_'
@@ -87,9 +88,9 @@ percentage_validation = 0.2
 batch_size = 8
 epoch_list = [400, 425]
 
-array_size = np.load(base_file_location5 + 'wrapped_noised/0.3/170.npy').shape
-wrpped_list = os.listdir(groundtruth_wrapped)
-first = np.load(base_file_location5 + 'wrapped_noised/0.3/170.npy')
+array_size = np.load(basic_location + 'noised/file_1.npy').shape
+input_list = os.listdir(groundtruth_input)
+first = np.load(basic_location + 'noised/file_1.npy')
 first = np.expand_dims(first, axis = -1)
 array_sizex, array_sizey, array_sizez = first.shape
 array_size_indiv = array_sizex
@@ -99,7 +100,7 @@ training_gradients = True
 
 #%%Preparing Dataset
 if training_gradients or training_gradients_and_noise or training_gradients_ft:
-    train_samples_syn_noised, valid_samples_syn_noised,  nst, nsv = Lets_go_model_multi_coh(input_directory_synw=groundtruth_wrapped, target_directory_syn_hor=groundtruth_x,
+    train_samples_syn_noised, valid_samples_syn_noised,  nst, nsv = Lets_go_model_multi_coh(input_directory_synw=groundtruth_input, target_directory_syn_hor=groundtruth_target,
                                                                               csv_directory=csv_directory, csv_file_names=csv_file_namesn,
                                                                               percentage_validation=percentage_validation, batch_size=batch_size, array_size=array_size,
                                                                               shuffle_data=shuffle_data, class_nom=class_nom)
@@ -115,19 +116,17 @@ if training_gradients:
 
     model = CustomModel()
     model = model.assemble_full_model()
-
     
     model.compile(
         optimizer=keras.optimizers.Adam(learning_rate=1e-6),  # Fix this line
         loss={
-            'finalx': custom_loss(class_weightsh1, class_nom),
+            'finalx': keras.losses.SparseCategoricalCrossentropy(),
         }
     )
     
-    for epochs in epoch_list:
-        nst_steps = (nst - 1)/batch_size
-        nsv__steps = (nsv - 1)/batch_size
-        history = model.fit(train_datagen, epochs=epochs,
-                            steps_per_epoch=int(nst_steps), callbacks=[reduce_lr_on_plateau, early_stopping, WandbMetricsLogger()], validation_data=valid_datagen, validation_steps=int(nsv__steps))
-        history.history.keys()
-        model.save(model_saving_location + model_name + str(epochs) + '.keras')
+    nst_steps = (nst - 1)/batch_size
+    nsv__steps = (nsv - 1)/batch_size
+    history = model.fit(train_datagen, epochs=epochs,
+                        steps_per_epoch=int(nst_steps), callbacks=[reduce_lr_on_plateau, early_stopping, WandbMetricsLogger()], validation_data=valid_datagen, validation_steps=int(nsv__steps))
+    history.history.keys()
+    model.save(model_saving_location + model_name + str(epochs) + '.keras')
