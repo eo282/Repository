@@ -67,10 +67,10 @@ def process_file_parallel(args):
     return process_file(file_path, sub_folder, target_dir, inputs_dir, input_nom, array_size_indiv)
 
 def listing_function(inputs, class_nom, array_size_indiv):
-    target_dir = inputs + 'x_grad/'
-    inputs_dir = inputs + 'wrapped_noised/'
+    target_dir = inputs + 'gradient_target/'
+    inputs_dir = inputs + 'input/'
     # import pdb; pdb.set_trace()
-    folder_dir = os.listdir(inputs_w) 
+    folder_dir = os.listdir(inputs_dir) 
     array_target = []
     array_c = []
     array_coh = []
