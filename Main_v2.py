@@ -75,9 +75,8 @@ from function_general_includingcoh import *
 basic_location ='/home/eeerog/folder_to_end_all_folders/training_data/patched_64/'
 groundtruth_wrapped = basic_location + 'wrapped_noised/'
 groundtruth_x = basic_location + 'x_grad/'
-groundtruth_y = basic_location + 'y_grad/'
 
-odel_saving_location = '/home/eeerog/folder_to_end_all_folders/models/'
+model_saving_location = '/home/eeerog/folder_to_end_all_folders/models/'
 model_name = 'model_name_'
 class_nom = 3
 cc_threshold = 0.1
@@ -101,14 +100,14 @@ training_gradients = True
 #%%Preparing Dataset
 if training_gradients or training_gradients_and_noise or training_gradients_ft:
     train_samples_syn_noised, valid_samples_syn_noised,  nst, nsv = Lets_go_model_multi_coh(input_directory_synw=groundtruth_wrapped, target_directory_syn_hor=groundtruth_x,
-                                                                              target_directory_syn_vert=groundtruth_y,csv_directory=csv_directory, csv_file_names=csv_file_namesn,
+                                                                              csv_directory=csv_directory, csv_file_names=csv_file_namesn,
                                                                               percentage_validation=percentage_validation, batch_size=batch_size, array_size=array_size,
                                                                               shuffle_data=shuffle_data, class_nom=class_nom)
     
     train_samples_syn = train_samples_syn_noised 
     valid_samples_syn = valid_samples_syn_noised
     
-    class_weightsv1, class_weightsh1, class_weightsc = listing_function(basic_location, class_nom, array_size_indiv)
+    class_weightsh1, class_weightsc = listing_function(basic_location, class_nom, array_size_indiv)
 
 if training_gradients:
     train_datagen = samples_gen_part_two_output_coh(samples=train_samples_syn, batch_size=batch_size, shuffle_data=shuffle_data, array_size=array_size, class_nom=class_nom)
@@ -122,7 +121,6 @@ if training_gradients:
         optimizer=keras.optimizers.Adam(learning_rate=1e-6),  # Fix this line
         loss={
             'finalx': custom_loss(class_weightsh1, class_nom),
-            'finaly': custom_loss(class_weightsv1, class_nom),
         }
     )
     
