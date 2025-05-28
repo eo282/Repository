@@ -167,7 +167,7 @@ class UNet():
 
         return convadd1x2
 
-    def assemble_full_model(self, num_classes=4):
+    def assemble_full_model(self, num_classes=3):
         input_size = (None, None, 1)
         inputs = tensorflow.keras.Input(shape=input_size)
 
