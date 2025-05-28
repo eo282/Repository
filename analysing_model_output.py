@@ -44,17 +44,16 @@ from tensorflow import keras
 import gc
 
 #%%Variables
-model_4 = '/home/eeerog/folder_to_end_all_folders/chapter_1/models/Keep_4Class_1e_5_64batchsize_unfilteredtarget_noisdatatrained50noise_Set_to_0.model'
-Model_location = [model_4]
-output_class_nom = [4]
-model_names = ['4Class_1e_5_64batchsize_unfilteredtarget_noisdatatrained25noise_Set_to_0 output_NOISEDVERSION']
+model_location = 'model_loc.model'
+Model_location = [model_location]
+output_class_nom = [3]
+model_names = ['model_name']
 
 file_location_base = '/home/eeerog/Downloads/OneDrive_1_10-04-2025/testing_dataset/ambiguity_gradient/ready/'
 output_file_location = '/home/eeerog/folder_to_end_all_folders/chapter_1/analysing_results/'
 
 list_dir = os.listdir(file_location_base + 'wrapped/')
 x_dict = {}
-y_dict = {}
 
 #%%Processing Functions
 def expanded_array_func_x(array):
@@ -75,23 +74,6 @@ def expanded_array_func_x(array):
     
     return new_array
 
-def expanded_array_func_y(array):
-    '''
-    Expanding array in the vertical direction function:
-        Parameters:
-            array: 2d numpy array
-    '''
-    original_array = array
-    l, w = array.shape
-    # import pdb; pdb.set_trace()
-    #  Create a new  array filled with zeros bigger along axis = 0
-    new_array = np.zeros((l + 1, w))
-    
-    # Copy the data from the original array to the new array
-    new_array[:-1, :] = original_array
-    
-    return new_array
-
 def preprocess_labels(label, nom_classes):
     '''
     Preprocessing target labels so all within a range dependent upon the number of classes:
@@ -105,17 +87,9 @@ def preprocess_labels(label, nom_classes):
         label[label >= 2] = 1
         label[label <= -2] = -1
     
-    elif nom_classes == 4:
-        
-        label[(label >= 2)] = 2
-        label[(label <= -2)] = 2
-    
-    elif nom_classes == 5:
-        label[label >= 2] = 2
-        label[label <= -2] = -2
         
     else:
-        print(' not the correct number of classes. you need class size of 3,4 or 5')
+        print(' not the correct number of classes. you need class size of 3')
     
     return label
 
@@ -128,17 +102,13 @@ def values_to_count_function(nom_classes):
     
     if nom_classes == 3:
         values_to_count = [-1,0,1]
-    elif nom_classes == 4:
-        values_to_count = [-1,0,1,2]
-    elif nom_classes ==5:            
-        values_to_count = [-2, -1, 0, 1, 2]
     else:
-        print('Not the right number of classes to count. You need either 3,4 or 5')
+        print('Not the right number of classes to count. You need 3 class')
     return values_to_count
 
 
 #%%
-def plotting_lines_and_shapes(maskx, masky, target_truth_y, target_truth_x, test_image, unwrapped, name, counting_dictionaryx, counting_dictionaryy):
+def plotting_lines_and_shapes(maskx, target_truth_x, test_image, unwrapped, name, counting_dictionaryx):
     '''
     Plotting funciton:
         Parameters:
@@ -162,67 +132,27 @@ def plotting_lines_and_shapes(maskx, masky, target_truth_y, target_truth_x, test
   #predicted value, truth value
     mapping = {
 
-        # (-2, 3): {'shape': 's', 'color': 'fuchsia', 'marker_size': '5', 'edge_color': (1.0, 0.0, 1.0)},
-        # (-1, 3): {'shape': 's', 'color': 'fuchsia', 'marker_size': '10', 'edge_color': (1.0, 0.0, 1.0)},
-        # (0, 3): {'shape': 's', 'color': 'fuchsia', 'marker_size': '10', 'edge_color':  (1.0, 0.0, 1.0)},
-        # (1, 3): {'shape': 's', 'color': 'fuchsia', 'marker_size': '10', 'edge_color': (1.0, 0.0, 1.0)},
-        # (2, 3): {'shape': 's', 'color': 'fuchsia', 'marker_size': '10', 'edge_color': (1.0, 0.0, 1.0)},
-        # (3, 3): {'shape': 's', 'color': 'green', 'marker_size': '10', 'edge_color': (0, 1, 1)},
-        
-        
-        (-2, -2): {'shape': 'x', 'color': 'green', 'marker_size': '5', 'edge_color': (0, 0.7, 0)},
-        (-1, -2): {'shape': 'x', 'color': 'red', 'marker_size': '10', 'edge_color': (1, 0, 0)},
-        (0, -2): {'shape': 'x', 'color': 'red', 'marker_size': '10', 'edge_color':  (1, 0, 0)},
-        (1, -2): {'shape': 'x', 'color': 'red', 'marker_size': '10', 'edge_color': (1, 0, 0)},
-        (2, -2): {'shape': 'x', 'color': 'red', 'marker_size': '10', 'edge_color': (1, 0, 0)},
-        # (3, -2): {'shape': 'x', 'color': 'red', 'marker_size': '10', 'edge_color': (1, 0, 0)},
-        
-        
-        
-        (-2, -1): {'shape': 'o', 'color': 'cyan', 'marker_size': '10', 'edge_color': (0.7, 0.7, 1)},
         (-1, -1): {'shape': 'o', 'color': 'green', 'marker_size': '5', 'edge_color': (0, 0.5, 1)},
         (0, -1): {'shape': 'o', 'color': 'cyan', 'marker_size': '10', 'edge_color': (0.7, 0.7, 1)},
         (1, -1): {'shape': 'o', 'color': 'cyan', 'marker_size': '10', 'edge_color':(0.7, 0.7, 1)},
-        (2, -1): {'shape': 'o', 'color': 'cyan', 'marker_size': '10', 'edge_color': (0.7, 0.7, 1)},
-        # (3, -1): {'shape': 'o', 'color': 'cyan', 'marker_size': '10', 'edge_color': (0.7, 0.7, 1)},
-        
-        
-        
-        (-2, 0): {'shape': '^', 'color': 'purple', 'marker_size': '10', 'edge_color': (0, 0, 0)},
+      
         (-1, 0): {'shape': '^', 'color': 'purple','marker_size': '10', 'edge_color':(0, 0, 0)},
         (0, 0): {'shape': '^', 'color': 'green', 'marker_size': '5' , 'edge_color': (0, 1, 0)},
         (1, 0): {'shape': '^', 'color': 'purple','marker_size': '10', 'edge_color':(0, 0, 0)},
-        (2, 0): {'shape': '^', 'color': 'purple', 'marker_size': '10', 'edge_color': (0, 0, 0)},
-        # (3, 0): {'shape': '^', 'color': 'purple', 'marker_size': '10', 'edge_color': (0, 0, 0)},
-        
-        
-        (-2, 1): {'shape': 'o', 'color': 'grey', 'marker_size': '10', 'edge_color': (0.7, 0.7, 1)},
+       
         (-1, 1): {'shape': 'o', 'color': 'grey', 'marker_size': '10', 'edge_color':(0.7, 0.7, 1)},
         (0, 1): {'shape': 'o', 'color': 'grey', 'marker_size': '10', 'edge_color': (0.7, 0.7, 1)},
         (1, 1): {'shape': 'o', 'color': 'green', 'marker_size': '5', 'edge_color': (0, 0.5, 1)},
-        (2, 1): {'shape': 'o', 'color': 'grey', 'marker_size': '10', 'edge_color': (0.7, 0.7, 1)},
-        # (3, 1): {'shape': 'o', 'color': 'grey', 'marker_size': '10', 'edge_color': (0.7, 0.7, 1)},
-        
-        
-        (-2, 2): {'shape': 'x', 'color': 'blue', 'marker_size': '10', 'edge_color':  (1, 0, 0)},
-        (-1, 2): {'shape': 'x', 'color': 'blue', 'marker_size': '10', 'edge_color': (1, 0, 0)},
-        (0, 2): {'shape': 'x', 'color': 'blue', 'marker_size': '10', 'edge_color':  (1, 0, 0)},
-        (1, 2): {'shape': 'x', 'color': 'blue', 'marker_size': '10', 'edge_color':  (1, 0, 0)},
-        (2, 2): {'shape': 'x', 'color': 'green', 'marker_size': '5', 'edge_color': (0, 0.7, 0)},
-        # (3, 2): {'shape': 'x', 'color': 'red', 'marker_size': '10', 'edge_color': (1, 0, 0)},
-        
-  
+       
     }
     
     maskx_copied = np.copy(maskx)
-    maskx_copied[maskx_copied == 2] = 4
-    maskx_copied[maskx_copied == -2] = 4
+
     maskx_copied[maskx_copied == 1] = 4
     maskx_copied[maskx_copied == -1] = 4
    
     masky_copied = np.copy(masky)
-    masky_copied[masky_copied == 2] = 4
-    masky_copied[masky_copied == -2] = 4
+  
     masky_copied[masky_copied == 1] = 4
     masky_copied[masky_copied == -1] = 4
 
@@ -263,7 +193,7 @@ def plotting_lines_and_shapes(maskx, masky, target_truth_y, target_truth_x, test
                 ax[0].plot([j + 0.5, j + 0.5], [i - 0.5, i + 0.5], color=edge_coloring['edge_color'], linewidth=4)  # Right edge
                 dot_info = mapping.get((predicted_value, truth_value))  # Default to gray x
 
-                if edge_coloring['edge_color'] in [(0, 0.7, 0),  (1, 0, 0), (0.7, 0.7, 1), (0, 0.5, 1), (0.7, 0.7, 1),(0, 1, 0)]:
+                if edge_coloring['edge_color'] in [(0.7, 0.7, 1), (0, 0.5, 1), (0.7, 0.7, 1),(0, 1, 0)]:
                    edge_color_is_red = True
                 
                 # Update the counting_dictionary
@@ -281,7 +211,7 @@ def plotting_lines_and_shapes(maskx, masky, target_truth_y, target_truth_x, test
                 # print(type(edge_coloring)) 
                 ax[0].plot([j - 0.5, j + 0.5], [i + 0.5, i + 0.5], color=edge_coloring['edge_color'], linewidth=4)  # Bottom edge
                 dot_info = mapping.get((predicted_value, truth_value), {'shape': 'x', 'color': 'gray'})  # Default to gray x
-                if edge_coloring['edge_color'] in [(0, 0.7, 0),  (1, 0, 0), (0.7, 0.7, 1), (0, 0.5, 1), (0.7, 0.7, 1), (0, 1, 0)]:
+                if edge_coloring['edge_color'] in [(0.7, 0.7, 1), (0, 0.5, 1), (0.7, 0.7, 1),(0, 1, 0)]:
                    edge_color_is_red = True
                
                 # Update the counting_dictionary
@@ -289,8 +219,8 @@ def plotting_lines_and_shapes(maskx, masky, target_truth_y, target_truth_x, test
 
     
     # Add a legend to the right of the plot
-    legend_labels = ['Correct Prediction 2', 'Correct Prediction 1', 'Correct Prediction 0', 'Incorrect Prediction, should be 0', 'Incorrect Prediction, should be 1','Incorrect Prediction, should be 2']
-    coloring = [(0, 0.7, 0), (0, 0.5, 1), (0, 1, 0), (0, 0, 0), (0.7, 0.7, 1),  (1, 0, 0)]
+    legend_labels = ['Correct Prediction 1', 'Correct Prediction 0', 'Incorrect Prediction, should be 0', 'Incorrect Prediction, should be 1']
+    coloring = [(0.7, 0.7, 1), (0, 0.5, 1), (0.7, 0.7, 1),(0, 1, 0)]
     # Create a list of custom lines based on the coloring
     custom_lines = [Line2D([0], [0], color=color, lw=3) for color in coloring]
     # Add the legend with custom lines and labels
@@ -329,7 +259,7 @@ def plotting_lines_and_shapes(maskx, masky, target_truth_y, target_truth_x, test
                 edge_coloring = mapping.get((predicted_value, truth_value), (0, 0, 0))
                 ax[0].plot([j + 0.5, j + 0.5], [i - 0.5, i + 0.5], color=edge_coloring['edge_color'], linewidth=4, zorder = 1)  # Right edge
 
-                if edge_coloring['edge_color'] in [(0, 0.7, 0),  (1, 0, 0), (0.7, 0.7, 1), (0, 0.5, 1), (0.7, 0.7, 1), (0, 1, 0)]:
+                if edge_coloring['edge_color'] in [(0.7, 0.7, 1), (0, 0.5, 1), (0.7, 0.7, 1),(0, 1, 0)]:
                    edge_color_is_red = True
 
     # Plot the bottom edges and dots
@@ -347,12 +277,12 @@ def plotting_lines_and_shapes(maskx, masky, target_truth_y, target_truth_x, test
 
                 ax[0].plot([j - 0.5, j + 0.5], [i + 0.5, i + 0.5], color=edge_coloring['edge_color'], linewidth=4, zorder = 1)  # Bottom edge
 
-                if edge_coloring['edge_color'] in [(0, 0.7, 0),  (1, 0, 0), (0.7, 0.7, 1), (0, 0.5, 1), (0.7, 0.7, 1), (0, 1, 0)]:
+                if edge_coloring['edge_color'] in [(0.7, 0.7, 1), (0, 0.5, 1), (0.7, 0.7, 1),(0, 1, 0)]:
                    edge_color_is_red = True
 
     # Add a legend to the right of the plot
-    legend_labels = ['Correct Prediction 2', 'Correct Prediction 1', 'Correct Prediction 0', 'Incorrect Prediction, should be 0', 'Incorrect Prediction, should be 1','Incorrect Prediction, should be 2']
-    coloring = [(0, 0.7, 0), (0, 0.5, 1), (0, 1, 0), (0, 0, 0), (0.7, 0.7, 1),  (1, 0, 0)]
+    legend_labels = ['Correct Prediction 1', 'Correct Prediction 0', 'Incorrect Prediction, should be 0', 'Incorrect Prediction, should be 1']
+    coloring = [(0.7, 0.7, 1), (0, 0.5, 1), (0.7, 0.7, 1),(0, 1, 0)]
     
     # Create a list of custom lines based on the coloring
     custom_lines = [Line2D([0], [0], color=color, lw=3) for color in coloring]
@@ -386,7 +316,7 @@ def plotting_lines_and_shapes(maskx, masky, target_truth_y, target_truth_x, test
     
     
 #%%
-def locating_ares_of_mismatch(maskx, masky, target_truth_y, target_truth_x, test_image, unwrapped, name, counting_dictionaryx, counting_dictionaryy):
+def locating_ares_of_mismatch(maskx, target_truth_x, test_image, unwrapped, name, counting_dictionaryx, counting_dictionaryy):
     
     # Size of the sub-arrays
     subarray_size = 64
@@ -401,13 +331,11 @@ def locating_ares_of_mismatch(maskx, masky, target_truth_y, target_truth_x, test
         for j in range(num_cols):
             # Extract the sub-array
             maskx_sub = maskx[i * subarray_size:(i + 1) * subarray_size, j * subarray_size:(j + 1) * subarray_size]
-            masky_sub = masky[i * subarray_size:(i + 1) * subarray_size, j * subarray_size:(j + 1) * subarray_size]
             target_truth_x_sub = target_truth_x[i * subarray_size:(i + 1) * subarray_size, j * subarray_size:(j + 1) * subarray_size]
-            target_truth_y_sub = target_truth_y[i * subarray_size:(i + 1) * subarray_size, j * subarray_size:(j + 1) * subarray_size]
             test_imagesub = test_image[i * subarray_size:(i + 1) * subarray_size, j * subarray_size:(j + 1) * subarray_size]
             unwrappedsub = unwrapped[i * subarray_size:(i + 1) * subarray_size, j * subarray_size:(j + 1) * subarray_size]
 
-            counting_dictionaryx, counting_dictionaryy = plotting_lines_and_shapes(maskx_sub, masky_sub, target_truth_y_sub, target_truth_x_sub, test_imagesub, unwrappedsub, name = name + str(count), counting_dictionaryx=counting_dictionaryx, counting_dictionaryy=counting_dictionaryy)
+            counting_dictionaryx = plotting_lines_and_shapes(maskx_sub, target_truth_x_sub, test_imagesub, unwrappedsub, name = name + str(count), counting_dictionaryx=counting_dictionaryx)
             count += 1
         
     plt.imshow(maskx)
@@ -415,12 +343,7 @@ def locating_ares_of_mismatch(maskx, masky, target_truth_y, target_truth_x, test
     
     plt.imshow(target_truth_x)
     plt.show()
-    
-    plt.imshow(masky)
-    plt.show()
-    
-    plt.imshow(target_truth_y)
-    plt.show()
+
 
     return counting_dictionaryx, counting_dictionaryy
 
@@ -443,92 +366,34 @@ for each_model in range(0, len(Model_location)):
     model_location = model_names[each_model]
     
     counting_dictionaryx = {
-        (-2, -2):0,
-        (-2, 2):0,
-        (-2, -1):0,
-        (-2, 0):0,
-        (-2, 1):0,
-        # (-2,3):0,
-            
+        
         (-1, -1):0,
-        (-1, -2):0,
         (-1, 0):0,
         (-1, 1):0,
-        (-1, 2):0,
-        # (-1,3):0,
-            
+     
         (0, 0):0,
-        (0, -2):0,
         (0, -1):0,
         (0, 1): 0,
-        (0, 2):0,
-        # (0,3):0,
-             
+      
         (1, 1):0,
-        (1, -2):0 ,   
         (1, -1):0,
         (1, 0):0,
-        (1, 2):0,
-        # (1,3):0,
-            
-        (2, 2):0,
-        (2, -2):0,
-        (2, -1):0,
-        (2, 0):0,
-        (2, 1):0,
-        # (2,3):0,
-        
-        # (3, 2):0,
-        # (3, -2):0,
-        # (3, -1):0,
-        # (3, 0):0,
-        # (3, 1):0,
-        # (3,3):0
 
         }
 
     counting_dictionaryy = {
-        (-2, -2):0,
-        (-2, 2):0,
-        (-2, -1):0,
-        (-2, 0):0,
-        (-2, 1):0,
-        # (-2, 3):0,
-            
+    
         (-1, -1):0,
-        (-1, -2):0,
         (-1, 0):0,
         (-1, 1):0,
-        (-1, 2):0,
-        # (-1, 3):0,
-            
+  
         (0, 0):0,
-        (0, -2):0,
         (0, -1):0,
         (0, 1): 0,
-        (0, 2):0,
-        # (0, 3):0,
              
         (1, 1):0,
-        (1, -2):0 ,   
         (1, -1):0,
         (1, 0):0,
-        (1, 2):0,
-        # (1, 3):0,
-            
-        (2, 2):0,
-        (2, -2):0,
-        (2, -1):0,
-        (2, 0):0,
-        (2, 1):0,
-        # (2, 3):0,
-        
-        # (3, 2):0,
-        # (3, -2):0,
-        # (3, -1):0,
-        # (3, 0):0,
-        # (3, 1):0,
-        # (3, 3):0
 
         }
 
@@ -560,114 +425,73 @@ for each_model in range(0, len(Model_location)):
             array = np.expand_dims(array, axis = -1)
             
             #Make model prediction
-            predsx, predsy = model.predict(array)
+            predsx = model.predict(array)
             
             #Extract the predictions and certainties in predictions
-            x,y  = predsx, predsy   
+            x  = predsx   
             x_pred = np.argmax(x, axis = 3)
-            y_pred = np.argmax(y, axis = 3)
-              
+            
             x_prob = np.max(x, axis = 3)#np.random.uniform(0.5,1, test_image.shape)#
-            y_prob =np.max(y, axis = 3)# np.random.uniform(0.5,1, test_image.shape)# 
             
             mask_valuex = np.reshape(x_pred, [l,w])
-            mask_valuey = np.reshape(y_pred, [l,w])  
-            
+           
             plt.imshow(mask_valuex)
             plt.colorbar()
             plt.show()
             
             most_probable_probx = np.reshape(x_prob, [l,w])
-            most_probable_proby = np.reshape(y_prob, [l,w])  
-            
             
             #Get truth dataset
             array = test_image_copy
             arrayx = expanded_array_func_x(array)
-            arrayy = expanded_array_func_y(array)
             unwrapx = expanded_array_func_x(unwrapped)
-            unwrapy = expanded_array_func_y(unwrapped)
-
+           
             k_valuesx = np.round((unwrapx- arrayx)/(2*np.pi))
-            k_valuesy = np.round((unwrapy - arrayy)/(2*np.pi))
-            
+           
             k_valuesx[:, -1] = k_valuesx[:, -2]
-            k_valuesy[-1, :] = k_valuesy[-2, :]
            
             label_hor = np.round(np.diff(k_valuesx, axis = 1))
-            label_vert = np.round(np.diff(k_valuesy, axis = 0))
-           
+            
             #  Replace NaN values with 0
             label_hor[np.isnan(label_hor)] = 0
-            label_vert[np.isnan(label_vert)] = 0
-    
+           
             target_truth_x = preprocess_labels(label_hor, nom_classes)
-            target_truth_y = preprocess_labels(label_vert, nom_classes)
-
-            if nom_classes == 5:            
-                mask_valuex = mask_valuex -2
-                mask_valuey = mask_valuey -2
-                x = x-2
-                y = y-2
-           
-            elif nom_classes == 4:   
-                # import pdb; pdb.set_trace()
+            
+    
+            if  nom_classes == 3:
                 mask_valuex = mask_valuex -1
-                mask_valuey = mask_valuey -1
                 x = x-1
-                y = y-1
-           
-            elif  nom_classes == 3:
-                mask_valuex = mask_valuex -1
-                mask_valuey = mask_valuey -1
-                x = x-1
-                y = y-1
-                
+              
             #Now i want to look at occasions where the prediction is wrong
             target_truth_x_flattened = target_truth_x.flatten()
             mask_valuex_flattened = mask_valuex.flatten()
-            target_truth_y_flattened = target_truth_y.flatten()
-            mask_valuey_flattened = mask_valuey.flatten()
-            
+           
             # mask_valuec =  np.load(file_location_base + 'deformation_mask/' + list_dir[j] + '/' + list_dir_2[i])
             mask_valuec = mask
             #NOw lets see if locations are within the noise regions
             target_truth_x_flattened = (target_truth_x * mask_valuec).flatten()
             mask_valuex_flattened = (mask_valuex * mask_valuec).flatten()
-            target_truth_y_flattened = (target_truth_y * mask_valuec).flatten()
-            mask_valuey_flattened = (mask_valuey * mask_valuec).flatten()
-            
+         
             #Confusion matrix for x and y directions
             confusion_matx = confusion_matrix(target_truth_x_flattened, mask_valuex_flattened)
-            confusion_maty = confusion_matrix(target_truth_y_flattened, mask_valuey_flattened)
-
+        
             x_match = target_truth_x_flattened == mask_valuex_flattened
-            y_match = target_truth_y_flattened == mask_valuey_flattened
-            
+           
             x_match_shape = np.reshape(x_match, (mask_valuex.shape))
-            y_match_shape = np.reshape(y_match, (mask_valuey.shape))
-            
+           
             most_probx_copy = np.copy(most_probable_probx)
-            most_proby_copy = np.copy(most_probable_proby)
             
             #Highlight locations where probabilties are greater than 0.8 and make 1
             most_probable_probx[most_probable_probx >= 0.1] = 1
             most_probable_probx[most_probable_probx < 0.1] = 0
-            
-            most_probable_proby[most_probable_proby >= 0.1] = 1
-            most_probable_proby[most_probable_proby < 0.1] = 0
-    
+           
             mask_valuex = mask_valuex.astype('float32')
-            mask_valuey = mask_valuey.astype('float32')
             target_truth_x = target_truth_x.astype('float32')
-            target_truth_y = target_truth_y.astype('float32')          
             
             #Make 0 locations where wrong but probability is less than 0.8
             mask_valuex = mask_valuex# * most_probable_probx
-            mask_valuey = mask_valuey# * most_probable_proby 
             target_truth_x = target_truth_x # * most_probable_probx
-            target_truth_y = target_truth_y #* most_probable_proby
-
+          
             name = output_file_location + model_location + '/'
             
             if not os.path.exists(name):
@@ -683,15 +507,15 @@ for each_model in range(0, len(Model_location)):
                 os.mkdir(name)
             
             
-            counting_dictionaryx, counting_dictionaryy = locating_ares_of_mismatch(mask_valuex, mask_valuey, target_truth_y, target_truth_x, test_image, unwrapped, name = name, counting_dictionaryx=counting_dictionaryx, counting_dictionaryy=counting_dictionaryy)
+            counting_dictionaryx = locating_ares_of_mismatch(mask_valuex, target_truth_x, test_image, unwrapped, name = name, counting_dictionaryx=counting_dictionaryx)
             folder_number += 1
             counter_for_listing = 0
            # import pdb; pdb.set_trace()
             del test_image, unwrapped, array, predsx, predsy
-            del x, y, x_pred, y_pred, x_prob, y_prob, mask_valuex, mask_valuey, most_probable_probx, most_probable_proby
-            del arrayx, arrayy, unwrapx, unwrapy, k_valuesx, k_valuesy, label_hor, label_vert, target_truth_x, target_truth_y
-            del mask_valuec, target_truth_x_flattened, mask_valuex_flattened, target_truth_y_flattened, mask_valuey_flattened
-            del confusion_matx, confusion_maty, x_match, y_match, x_match_shape, y_match_shape, most_probx_copy, most_proby_copy
+            del x, x_pred, x_prob, mask_valuex, most_probable_probx
+            del arrayx, unwrapx, k_valuesx, label_hor, target_truth_x
+            del mask_valuec, target_truth_x_flattened, mask_valuex_flattened
+            del confusion_matx, x_match, x_match_shape, most_probx_copy
 
         else:
             counter_for_listing += 1
