@@ -52,20 +52,8 @@ def process_file(file_path, sub_folder, inputs_h, inputs_w, class_nom,array_size
         file_h[file_h <= -2] = -1
         file_h[mask == 0] = 0
     
-    elif class_nom == 4:
-    
-        file_h[np.isnan(file_h)] = 0
-        file_h[file_h >= 2] = 2
-        
-        file_h[file_h <= -2] = -2
-        file_h[mask == 0] = 0
-    
-    elif class_nom == 5:
-    
-        file_h[np.isnan(file_h)] = 0
-        file_h[file_h >= 2] = 2
-        file_h[file_h <= -2] = -2
-        file_h[mask == 0] = 0
+    else:
+	print('you can only have a 3 class model')
     
 
         
@@ -123,25 +111,10 @@ def listing_function(inputs, class_nom, array_size_indiv):
 
         # Rest of your code to calculate class weights goes here
         
-        class_weightsh = {i-1: total_samplesh / (len(class_countsh) * class_countsh[i]) for i in range(len(class_countsh))}
-        class_weightsc = {i: total_samplesc / (len(class_countsc) * class_countsc[i]) for i in range(len(class_countsc))}
-        
-    elif class_nom == 4:
-        class_countsc = [np.count_nonzero(all_file_h == 0), np.count_nonzero(all_file_h == 1) + np.count_nonzero(all_file_h == 2)]
-        total_samplesc = sum(class_countsc)
-        class_frequenciesc = [count / total_samplesc for count in class_countsc]
-	    
-        class_countsh = [ np.count_nonzero(all_file_h == -1), np.count_nonzero(all_file_h == 0) , np.count_nonzero(all_file_h == 1), np.count_nonzero(all_file_h == 2), np.count_nonzero(all_file_h == 3)  ]#,]
-        total_samplesh = sum(class_countsh)
-        class_frequenciesh = [count / total_samplesh for count in class_countsh]
-
-        # Rest of your code to calculate class weights goes here
-        # import pdb; pdb.set_trace()
         class_weightsh = [1 - count  for count in class_frequenciesh]
         class_weightsc = [1 - count  for count in class_frequenciesc]
-       
-        
-        # normalising part
+
+	# normalising part
         sum_weightsh = sum(class_weightsh)
         sum_weightsc = sum(class_weightsc)
         
@@ -149,27 +122,16 @@ def listing_function(inputs, class_nom, array_size_indiv):
         normalized_class_weightsh = [weight / sum_weightsh for weight in class_weightsh]
         normalized_class_weightsc = [weight / sum_weightsc for weight in class_weightsc]
        
-        num_classes = 4
+        num_classes = class_nom
         total_samples_m1h = total_samplesh/(num_classes * class_countsh[0])
         total_samples_0h = total_samplesh/(num_classes * class_countsh[1])
         total_samples_1h = total_samplesh/(num_classes * class_countsh[2])
-        total_samples_2h = total_samplesh/(num_classes * class_countsh[3])
         
-        normalized_class_weightsh = [total_samples_m1h, total_samples_0h, total_samples_1h, total_samples_2h]
+        normalized_class_weightsh = [total_samples_m1h, total_samples_0h, total_samples_1h]
+    else:
+	print('you can only use this for a 3 class classification problem')
+       
         
-    elif class_nom == 5:
-        class_countsc = [np.count_nonzero(all_file_h == 0), np.count_nonzero(all_file_h == 1) + np.count_nonzero(all_file_h == 2)]
-        total_samplesc = sum(class_countsc)
-        class_frequenciesc = [count / total_samplesc for count in class_countsc]
-    
-        class_countsh = [np.count_nonzero(all_file_h == -2), np.count_nonzero(all_file_h == -1), np.count_nonzero(all_file_h == 0) +  np.count_nonzero(all_file_h == 3), np.count_nonzero(all_file_h == 1), np.count_nonzero(all_file_h == 2) ]
-        total_samplesh = sum(class_countsh)
-        class_frequenciesh = [count / total_samplesh for count in class_countsh]
-        
-        class_weightsh = {i-2: total_samplesh / (len(class_countsh) * class_countsh[i]) for i in range(len(class_countsh))}
-        class_weightsc = {i: total_samplesc / (len(class_countsc) * class_countsc[i]) for i in range(len(class_countsc))}
-        
-  
     return (
         normalized_class_weightsh,
         normalized_class_weightsc
@@ -358,22 +320,9 @@ def preprocess_labels(label, class_nom):
         
         label[np.isnan(label)] = 0
         label = label + 1
-        
-    elif class_nom ==4:
-        label[label > 2] = 2
-        label[label <= -2]  = 2
-        
-        label[np.isnan(label)] = 2
-        label = label + 1
-        
-    elif class_nom ==5:
-        label[label >= 2] = 2
-        label[label <= -2] = -2
-        
-        label[np.isnan(label)] = 0
-        label = label + 2
+
     else:
-        print('error - class number needs to be either 3,4 or 5')
+        print('error - class number needs to be 3')
 
     return label
 
